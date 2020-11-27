@@ -5,8 +5,9 @@ mod day_1;
 mod day_2;
 mod day_3;
 mod day_4;
-// mod day_5;
+// mod day_5;  // this takes a few seconds to run, skip typically
 mod day_6;
+mod day_7;
 
 fn main() {
   println!("See the individual files and their tests!");
