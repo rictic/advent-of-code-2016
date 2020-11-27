@@ -9,6 +9,7 @@ mod day_4;
 mod day_6;
 mod day_7;
 mod day_8;
+mod day_9;
 
 fn main() {
   println!("See the individual files and their tests!");
