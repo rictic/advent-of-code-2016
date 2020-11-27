@@ -1,3 +1,5 @@
+mod day_1;
+
 fn main() {
-    println!("Hello, world!");
+    println!("See the individual files and their tests!");
 }
