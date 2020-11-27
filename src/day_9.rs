@@ -1,43 +1,96 @@
 #![allow(dead_code)]
 
-use std::str::from_utf8;
+use regex::{Match, Regex};
 
-use regex::bytes::{Match, Regex};
+enum DecompressProgress<'a> {
+  Rest(&'a str),
+  Matched {
+    head: &'a str,
+    repeat_str: &'a str,
+    times: usize,
+    tail: &'a str,
+  },
+}
+
+fn decompress_piece(mut piece: &str) -> DecompressProgress {
+  lazy_static! {
+    static ref MARKER_RE: Regex = Regex::new(r"\((\d+)x(\d+)\)").unwrap();
+  }
+  let marker_match: Match = match MARKER_RE.find(piece) {
+    Some(m) => m,
+    None => {
+      return DecompressProgress::Rest(piece);
+    }
+  };
+  let head = &piece[0..marker_match.start()];
+  let captures = MARKER_RE.captures(&piece[marker_match.start()..]).unwrap();
+  let bytes_to_repeat: usize = captures[1].parse().unwrap();
+  let times: usize = captures[2].parse().unwrap();
+  piece = &piece[marker_match.end()..];
+  let repeat_str = &piece[0..bytes_to_repeat];
+  let tail = &piece[bytes_to_repeat..];
+  DecompressProgress::Matched {
+    head,
+    tail,
+    repeat_str,
+    times,
+  }
+}
 
 fn decompress(code: &str) -> String {
   let code = code
     .chars()
     .filter(|c| !c.is_whitespace())
     .collect::<String>();
-  let mut code = code.as_bytes();
-  lazy_static! {
-    static ref MARKER_RE: Regex = Regex::new(r"\((\d+)x(\d+)\)").unwrap();
-  }
+  let mut code = &code[0..];
   let mut result = String::with_capacity(code.len());
   loop {
-    let marker_match: Match = match MARKER_RE.find(code) {
-      Some(m) => m,
-      None => {
-        result.push_str(from_utf8(code).unwrap());
+    match decompress_piece(code) {
+      DecompressProgress::Rest(s) => {
+        result.push_str(s);
         return result;
       }
-    };
-    result.push_str(from_utf8(&code[0..marker_match.start()]).unwrap());
-    let captures = MARKER_RE.captures(&code[marker_match.start()..]).unwrap();
-    let bytes_to_repeat: usize = from_utf8(&captures[1]).unwrap().parse().unwrap();
-    let num_repetitions: usize = from_utf8(&captures[2]).unwrap().parse().unwrap();
-    code = &code[marker_match.end()..];
-    let repeated_str = from_utf8(&code[0..bytes_to_repeat]).unwrap();
-    code = &code[bytes_to_repeat..];
-    for _ in 0..num_repetitions {
-      result.push_str(repeated_str);
+      DecompressProgress::Matched {
+        head,
+        repeat_str,
+        times,
+        tail,
+      } => {
+        result.push_str(head);
+        for _ in 0..times {
+          result.push_str(repeat_str);
+        }
+        code = tail;
+      }
     }
   }
 }
 
-fn decompress_v2(code: &str) -> String {
-  let result = String::with_capacity(code.len());
-  result
+fn measure_decompress_v2(code: &str) -> usize {
+  let code = code
+    .chars()
+    .filter(|c| !c.is_whitespace())
+    .collect::<String>();
+  let mut code = &code[0..];
+  let mut len = 0;
+  loop {
+    match decompress_piece(code) {
+      DecompressProgress::Rest(s) => {
+        len += s.len();
+        return len;
+      }
+      DecompressProgress::Matched {
+        head,
+        repeat_str,
+        times,
+        tail,
+      } => {
+        len += head.len();
+        len += times * measure_decompress_v2(repeat_str);
+        code = tail;
+      }
+    }
+  }
 }
 
 #[cfg(test)]
@@ -65,6 +118,28 @@ mod test {
   #[test]
   fn my_input() {
     assert_eq!(112830, decompress(MY_INPUT).len());
+  }
+
+  #[test]
+  fn part_2_examples() {
+    assert_eq!("XYZXYZXYZ".len(), measure_decompress_v2("(3x3)XYZ"));
+    assert_eq!(
+      "XABCABCABCABCABCABCY".len(),
+      measure_decompress_v2("X(8x2)(3x3)ABCY")
+    );
+    assert_eq!(
+      241920,
+      measure_decompress_v2("(27x12)(20x12)(13x14)(7x10)(1x12)A")
+    );
+    assert_eq!(
+      445,
+      measure_decompress_v2("(25x3)(3x3)ABC(2x3)XY(5x2)PQRSTX(18x9)(3x2)TWO(5x7)SEVEN")
+    );
+  }
+
+  #[test]
+  fn part_2_my_input() {
+    assert_eq!(10931789799, measure_decompress_v2(MY_INPUT));
   }
 
   static MY_INPUT: &'static str = include_str!("day_9_input.txt");
