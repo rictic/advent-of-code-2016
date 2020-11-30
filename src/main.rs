@@ -5,8 +5,9 @@ mod day_1;
 mod day_2;
 mod day_3;
 mod day_4;
-// mod day_5;  // this takes a few seconds to run, skip typically
+// mod day_5;  // this takes a couple seconds to run in release mode, skip typically
 mod day_10;
+mod day_11; // this takes ~25s to run in release mode, skip usually
 mod day_6;
 mod day_7;
 mod day_8;
