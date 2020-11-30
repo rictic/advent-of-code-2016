@@ -13,8 +13,9 @@ mod day_9;
 // ---- comment to keep logical ordering of mods
 mod day_10;
 // mod day_11; // this takes ~25s to run in release mode, skip usually
-mod day_12;
+// mod day_12; // about 2s
+mod day_13;
 
 fn main() {
-  println!("See the individual files and their tests!");
+  println!("{}", "See the individual files and their tests!");
 }
