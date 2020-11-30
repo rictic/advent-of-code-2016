@@ -15,6 +15,9 @@ mod day_10;
 // mod day_11; // this takes ~25s to run in release mode, skip usually
 // mod day_12; // about 2s
 mod day_13;
+mod day_14;
+
+mod md5;
 
 fn main() {
   println!("{}", "See the individual files and their tests!");

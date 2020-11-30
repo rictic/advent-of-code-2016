@@ -1,41 +1,27 @@
 #![allow(dead_code)]
-use std::fmt::Write;
+
+use crate::md5::Md5Iterator;
 
 struct Matcher {
-  len: usize,
-  i: u64,
-  scratch_str: String,
+  iter: Md5Iterator,
 }
 impl Matcher {
   fn new(door_id: &str) -> Self {
     Self {
-      len: door_id.len(),
-      i: 0,
-      scratch_str: door_id.to_string(),
+      iter: Md5Iterator::new(door_id),
     }
-  }
-
-  fn matches(&mut self, i: u64) -> Option<md5::Digest> {
-    self.scratch_str.truncate(self.len);
-    write!(self.scratch_str, "{}", i).unwrap();
-    let digest = md5::compute(&self.scratch_str);
-    if digest[0..2] == [0, 0] && digest[2] & 0xf0 == 0 {
-      return Some(digest);
-    }
-    None
   }
 }
 impl Iterator for Matcher {
   type Item = md5::Digest;
 
   fn next(&mut self) -> Option<Self::Item> {
-    loop {
-      let digest = self.matches(self.i);
-      self.i += 1;
-      if let Some(digest) = digest {
+    while let Some(digest) = self.iter.next() {
+      if digest[0..2] == [0, 0] && digest[2] & 0xf0 == 0 {
         return Some(digest);
       }
     }
+    None
   }
 }
 
