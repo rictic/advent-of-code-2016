@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use std::fmt::Write;
 pub struct Md5Iterator {
   len: usize,
