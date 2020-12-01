@@ -16,7 +16,8 @@ mod day_10;
 // mod day_12; // about 2s
 mod day_13;
 // mod day_14; // about 35s
-mod day_15;
+// mod day_15; // about 1.25s
+// mod day_16; // about 0.35s
 
 mod md5;
 
