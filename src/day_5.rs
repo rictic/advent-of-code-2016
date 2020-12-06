@@ -60,6 +60,7 @@ fn compute_complex_password(door_id: &str) -> String {
 mod test {
   use super::*;
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn example() {
     assert_eq!("18f47a30", &compute_password("abc"));
@@ -67,16 +68,19 @@ mod test {
 
   const MY_INPUT: &'static str = "reyedfim";
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn my_input() {
     assert_eq!("f97c354d", &compute_password(MY_INPUT));
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_example() {
     assert_eq!("05ace8e3", &compute_complex_password("abc"))
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     assert_eq!("863dde27", &compute_complex_password(MY_INPUT))

@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use std::fmt::Write;
+
+use md5::Digest;
 pub struct Md5Iterator {
   len: usize,
   i: u64,
@@ -16,7 +18,7 @@ impl Md5Iterator {
   }
 }
 impl Iterator for Md5Iterator {
-  type Item = md5::Digest;
+  type Item = Digest;
 
   fn next(&mut self) -> Option<Self::Item> {
     loop {
@@ -26,5 +28,36 @@ impl Iterator for Md5Iterator {
       self.i += 1;
       return Some(digest);
     }
+  }
+}
+
+pub struct HexIterator {
+  digest: Digest,
+  idx: usize,
+  lower: bool,
+}
+impl HexIterator {
+  pub fn new(digest: Digest) -> Self {
+    Self {
+      digest,
+      idx: 0,
+      lower: false,
+    }
+  }
+}
+impl Iterator for HexIterator {
+  type Item = u8;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let initial = *self.digest.0.get(self.idx)?;
+    let c = if self.lower {
+      self.lower = false;
+      self.idx += 1;
+      initial & 0x0f
+    } else {
+      self.lower = true;
+      (initial & 0xf0) >> 4
+    };
+    Some(c)
   }
 }

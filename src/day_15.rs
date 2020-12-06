@@ -82,20 +82,19 @@ mod test {
     assert_eq!(5, sculpture.first_drop_time());
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn my_input() {
     let mut sculpture = Sculpture::new(MY_INPUT.iter().map(|c| *c).collect());
     assert_eq!(400589, sculpture.first_drop_time());
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
-  fn part_2_example() {
+  fn part_2_my_input() {
     let mut discs: Vec<_> = MY_INPUT.iter().map(|c| *c).collect();
     discs.push(Disc::new(11, 0));
     let mut sculpture = Sculpture::new(discs);
     assert_eq!(3045959, sculpture.first_drop_time());
   }
-
-  #[test]
-  fn part_2_my_input() {}
 }

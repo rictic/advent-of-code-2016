@@ -45,7 +45,7 @@ where
   fn next(&mut self) -> Option<Self::Item> {
     loop {
       let (idx, digest) = self.internal_next();
-      let runs = HexIterator::new(digest)
+      let runs = crate::md5::HexIterator::new(digest)
         .group_by(|k| *k)
         .into_iter()
         .map(|(k, g)| (k, g.count()))
@@ -98,36 +98,6 @@ where
   }
 }
 
-struct HexIterator {
-  digest: Digest,
-  idx: usize,
-  lower: bool,
-}
-impl HexIterator {
-  fn new(digest: Digest) -> Self {
-    Self {
-      digest,
-      idx: 0,
-      lower: false,
-    }
-  }
-}
-impl Iterator for HexIterator {
-  type Item = u8;
-
-  fn next(&mut self) -> Option<Self::Item> {
-    let initial = *self.digest.0.get(self.idx)?;
-    let c = if self.lower {
-      self.lower = false;
-      self.idx += 1;
-      initial & 0x0f
-    } else {
-      self.lower = true;
-      (initial & 0xf0) >> 4
-    };
-    Some(c)
-  }
-}
 struct Candidate {
   idx: usize,
   running_char: u8,
@@ -168,9 +138,9 @@ mod test {
   use super::*;
 
   #[test]
-  fn examples() {
+  fn quick_examples() {
     let digest = md5::compute("abc18");
-    let hexes: String = HexIterator::new(digest)
+    let hexes: String = crate::md5::HexIterator::new(digest)
       .map(|u| format!("{:x}", u))
       .collect();
     assert_eq!(hexes, format!("{:x}", digest));
@@ -187,7 +157,11 @@ mod test {
       matcher.next()
     );
     assert_eq!(Some(92), matcher.next().map(|(idx, _digest)| idx));
+  }
 
+  #[cfg(not(debug_assertions))]
+  #[test]
+  fn examples() {
     let matcher = OneTimePadMatcher::new(Md5Iterator::new("abc"));
     let expected_sixty_fourth_idx = 22728;
     assert_eq!(
@@ -208,6 +182,7 @@ mod test {
   }
 
   const MY_INPUT: &'static str = "ihaygndm";
+  #[cfg(not(debug_assertions))]
   #[test]
   fn my_input() {
     assert_eq!(
@@ -219,6 +194,7 @@ mod test {
     );
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_example() {
     assert_eq!(
@@ -230,6 +206,7 @@ mod test {
     );
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     assert_eq!(

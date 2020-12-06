@@ -194,6 +194,7 @@ mod test {
     assert_eq!(318020, computer.a);
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     let mut computer = Computer::new(MY_INPUT);

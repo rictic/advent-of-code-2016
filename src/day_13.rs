@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::astar::AStarSearcher;
 use colored::Colorize;
 use std::collections::{BTreeSet, VecDeque};
 
@@ -24,26 +25,13 @@ impl Maze {
   }
 
   fn min_path_between(&self, from: Point, to: Point) -> (BTreeSet<Point>, Option<u64>) {
-    let mut heap = std::collections::BinaryHeap::new();
-    let mut visited = std::collections::BTreeSet::new();
-    heap.push(AStarPoint {
-      steps_taken: 0,
-      taxicab_distance: from.taxicab_distance(to),
-      point: from,
-    });
-    while let Some(astar_point) = heap.pop() {
-      if astar_point.point == to {
-        return (visited, Some(astar_point.steps_taken));
-      }
-      for successor in self.successors(astar_point, to) {
-        if visited.contains(&successor.point) {
-          continue;
-        }
-        visited.insert(successor.point);
-        heap.push(successor);
-      }
-    }
-    return (visited, None);
+    let mut searcher = MazeSearcher {
+      maze: *self,
+      target: to,
+      seen: BTreeSet::new(),
+    };
+    let result = searcher.search(from);
+    return (searcher.seen, result.map(|v| v.0));
   }
 
   fn count_locations_within_distance(&self, from: Point, within: u64) -> (BTreeSet<Point>, u64) {
@@ -92,67 +80,32 @@ impl Maze {
     }
     result
   }
+}
+struct MazeSearcher {
+  maze: Maze,
+  target: Point,
+  seen: BTreeSet<Point>,
+}
+impl crate::astar::AStarSearcher for MazeSearcher {
+  type Node = Point;
 
-  fn successors(&self, current: AStarPoint, target: Point) -> Vec<AStarPoint> {
-    let mut result = Vec::with_capacity(4);
-    let Point(x, y) = current.point;
-    let steps_taken = current.steps_taken + 1;
-    if x != 0 {
-      let point = Point(x - 1, y);
-      if !self.is_wall(point) {
-        result.push(AStarPoint {
-          steps_taken,
-          point,
-          taxicab_distance: point.taxicab_distance(target),
-        });
-      }
-    }
-    if y != 0 {
-      let point = Point(x, y - 1);
-      if !self.is_wall(point) {
-        result.push(AStarPoint {
-          steps_taken,
-          point,
-          taxicab_distance: point.taxicab_distance(target),
-        });
-      }
-    }
-    let point = Point(x + 1, y);
-    if !self.is_wall(point) {
-      result.push(AStarPoint {
-        steps_taken,
-        point,
-        taxicab_distance: point.taxicab_distance(target),
-      });
-    }
-    let point = Point(x, y + 1);
-    if !self.is_wall(point) {
-      result.push(AStarPoint {
-        steps_taken,
-        point,
-        taxicab_distance: point.taxicab_distance(target),
-      });
-    }
-    result
+  fn optimistic_distance(&self, node: &Self::Node) -> u64 {
+    node.taxicab_distance(self.target)
   }
-}
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-struct AStarPoint {
-  steps_taken: u64,
-  taxicab_distance: u64,
-  point: Point,
-}
-impl PartialOrd for AStarPoint {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    Some(self.cmp(other))
-  }
-}
-impl Ord for AStarPoint {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    (self.steps_taken + self.taxicab_distance)
-      .cmp(&(other.steps_taken + other.taxicab_distance))
-      .reverse()
+  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+    self
+      .maze
+      .neighbors(*node)
+      .into_iter()
+      .filter(|n| {
+        let seen = self.seen.contains(&n);
+        if !seen {
+          self.seen.insert(*n);
+        }
+        !seen
+      })
+      .collect()
   }
 }
 
@@ -214,6 +167,7 @@ mod test {
     );
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     let maze = Maze::new(1358);

@@ -91,6 +91,7 @@ mod test {
     assert_eq!("00100111000101111", format!("{}", gen));
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     let mut gen = DragonGenerator::new("01111010110010011");

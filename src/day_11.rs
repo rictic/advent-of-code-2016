@@ -1,7 +1,8 @@
 #![allow(dead_code)]
 
+use crate::astar::AStarSearcher;
 use itertools::Itertools;
-use std::fmt::Display;
+use std::{collections::BTreeSet, fmt::Display};
 use MachineKind::*;
 
 struct MachineInit {
@@ -27,26 +28,8 @@ impl State {
     result
   }
 
-  fn count_moves_to_solution(&self) -> Option<u32> {
-    let mut heap = std::collections::BinaryHeap::new();
-    let mut seen = std::collections::HashSet::new();
-    heap.push(HeuristicOrderedState::initial(self.initial));
-    let mut count: i64 = 0;
-    while let Some(state) = heap.pop() {
-      if state.state.is_finished() {
-        println!("Added {} total entries to heap", count);
-        return Some(state.steps_so_far);
-      }
-      for successor in state.successors() {
-        if seen.contains(&successor.state) {
-          continue;
-        }
-        seen.insert(successor.state);
-        heap.push(successor);
-        count += 1;
-      }
-    }
-    return None;
+  fn count_moves_to_solution(self) -> Option<u64> {
+    return StateSearcher::default().search(self.initial).map(|s| s.0);
   }
 }
 impl Display for State {
@@ -81,11 +64,35 @@ impl Display for State {
     Ok(())
   }
 }
+#[derive(Default)]
+struct StateSearcher {
+  seen: BTreeSet<InnerState>,
+}
+impl crate::astar::AStarSearcher for StateSearcher {
+  type Node = InnerState;
+
+  fn optimistic_distance(&self, node: &Self::Node) -> u64 {
+    node.distance_from_complete()
+  }
+
+  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+    node
+      .successors()
+      .filter(|n| {
+        let has_seen = self.seen.contains(n);
+        if !has_seen {
+          self.seen.insert(*n);
+        }
+        !has_seen
+      })
+      .collect()
+  }
+}
 
 #[derive(PartialEq, Eq, Copy, Clone)]
 struct HeuristicOrderedState {
   steps_so_far: u32,
-  heuristic: u16,
+  heuristic: u64,
   state: InnerState,
 }
 impl HeuristicOrderedState {
@@ -167,8 +174,8 @@ impl InnerState {
     SuccessorsIterator::new(*self)
   }
 
-  fn distance_from_complete(&self) -> u16 {
-    ((self.floors[0].len() * 3) + (self.floors[1].len() * 2) + (self.floors[2].len())) as u16
+  fn distance_from_complete(&self) -> u64 {
+    ((self.floors[0].len() * 3) + (self.floors[1].len() * 2) + (self.floors[2].len())) as u64
   }
 }
 struct SuccessorsIterator {
@@ -597,6 +604,7 @@ mod test {
     assert_eq!(Some(11), state.count_moves_to_solution());
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn my_input() {
     /*
@@ -638,6 +646,7 @@ mod test {
     assert_eq!(Some(47), state.count_moves_to_solution());
   }
 
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     let state = State::new(
