@@ -28,8 +28,8 @@ impl Maze {
     let mut searcher = MazeSearcher {
       maze: *self,
       target: to,
-      seen: BTreeSet::new(),
-    };
+    }
+    .caching();
     let result = searcher.search(from);
     return (searcher.seen, result.map(|v| v.0));
   }
@@ -84,7 +84,6 @@ impl Maze {
 struct MazeSearcher {
   maze: Maze,
   target: Point,
-  seen: BTreeSet<Point>,
 }
 impl crate::astar::AStarSearcher for MazeSearcher {
   type Node = Point;
@@ -94,18 +93,7 @@ impl crate::astar::AStarSearcher for MazeSearcher {
   }
 
   fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
-    self
-      .maze
-      .neighbors(*node)
-      .into_iter()
-      .filter(|n| {
-        let seen = self.seen.contains(&n);
-        if !seen {
-          self.seen.insert(*n);
-        }
-        !seen
-      })
-      .collect()
+    self.maze.neighbors(*node)
   }
 }
 

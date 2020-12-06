@@ -2,7 +2,7 @@
 
 use crate::astar::AStarSearcher;
 use itertools::Itertools;
-use std::{collections::BTreeSet, fmt::Display};
+use std::fmt::Display;
 use MachineKind::*;
 
 struct MachineInit {
@@ -29,7 +29,10 @@ impl State {
   }
 
   fn count_moves_to_solution(self) -> Option<u64> {
-    return StateSearcher::default().search(self.initial).map(|s| s.0);
+    return StateSearcher::default()
+      .caching()
+      .search(self.initial)
+      .map(|s| s.0);
   }
 }
 impl Display for State {
@@ -65,9 +68,7 @@ impl Display for State {
   }
 }
 #[derive(Default)]
-struct StateSearcher {
-  seen: BTreeSet<InnerState>,
-}
+struct StateSearcher {}
 impl crate::astar::AStarSearcher for StateSearcher {
   type Node = InnerState;
 
@@ -76,16 +77,7 @@ impl crate::astar::AStarSearcher for StateSearcher {
   }
 
   fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
-    node
-      .successors()
-      .filter(|n| {
-        let has_seen = self.seen.contains(n);
-        if !has_seen {
-          self.seen.insert(*n);
-        }
-        !has_seen
-      })
-      .collect()
+    node.successors().collect()
   }
 }
 

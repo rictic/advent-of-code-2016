@@ -1,8 +1,8 @@
 #![allow(dead_code)]
 
-use std::collections::BinaryHeap;
+use std::collections::{BTreeSet, BinaryHeap};
 
-pub trait AStarSearcher {
+pub trait AStarSearcher: Sized {
   type Node: Sized + Ord + Copy;
 
   fn search(&mut self, initial: Self::Node) -> Option<(u64, Self::Node)> {
@@ -28,8 +28,48 @@ pub trait AStarSearcher {
     return None;
   }
 
+  fn caching(self) -> CachingSearcher<Self> {
+    CachingSearcher {
+      searcher: self,
+      seen: Default::default(),
+    }
+  }
+
   fn optimistic_distance(&self, node: &Self::Node) -> u64;
   fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node>;
+}
+
+pub struct CachingSearcher<Searcher>
+where
+  Searcher: AStarSearcher,
+{
+  searcher: Searcher,
+  pub seen: BTreeSet<Searcher::Node>
+}
+impl<Searcher> AStarSearcher for CachingSearcher<Searcher>
+where
+  Searcher: AStarSearcher,
+{
+  type Node = Searcher::Node;
+
+  fn optimistic_distance(&self, node: &Self::Node) -> u64 {
+    self.searcher.optimistic_distance(node)
+  }
+
+  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+    self
+      .searcher
+      .successors(node)
+      .into_iter()
+      .filter(|n| {
+        let has_seen = self.seen.contains(n);
+        if !has_seen {
+          self.seen.insert(*n);
+        }
+        !has_seen
+      })
+      .collect()
+  }
 }
 
 #[derive(PartialEq, Eq, Copy, Clone)]
