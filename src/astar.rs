@@ -3,7 +3,7 @@
 use std::collections::{BTreeSet, BinaryHeap};
 
 pub trait AStarSearcher: Sized {
-  type Node: Sized + Ord + Copy;
+  type Node: Sized + Ord;
 
   fn search(&mut self, initial: Self::Node) -> Option<(u64, Self::Node)> {
     let mut heap: BinaryHeap<SearchNode<Self::Node>> = BinaryHeap::new();
@@ -17,11 +17,12 @@ pub trait AStarSearcher: Sized {
       if state.heuristic == 0 {
         return Some((state.steps_so_far, state.node));
       }
-      for successor in self.successors(&state.node) {
+      for successor in self.successors(&state.node).into_iter() {
+        let heuristic = self.optimistic_distance(&successor);
         heap.push(SearchNode {
           steps_so_far: state.steps_so_far + 1,
           node: successor,
-          heuristic: self.optimistic_distance(&successor),
+          heuristic,
         });
       }
     }
@@ -44,11 +45,12 @@ where
   Searcher: AStarSearcher,
 {
   searcher: Searcher,
-  pub seen: BTreeSet<Searcher::Node>
+  pub seen: BTreeSet<Searcher::Node>,
 }
 impl<Searcher> AStarSearcher for CachingSearcher<Searcher>
 where
   Searcher: AStarSearcher,
+  Searcher::Node: Copy,
 {
   type Node = Searcher::Node;
 
