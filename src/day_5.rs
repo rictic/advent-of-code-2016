@@ -58,6 +58,7 @@ fn compute_complex_password(door_id: &str) -> String {
 
 #[cfg(test)]
 mod test {
+  #[cfg(not(debug_assertions))]
   use super::*;
 
   #[cfg(not(debug_assertions))]
