@@ -87,12 +87,13 @@ struct MazeSearcher {
 }
 impl crate::astar::AStarSearcher for MazeSearcher {
   type Node = Point;
+  type Successors = Vec<Self::Node>;
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64 {
     node.taxicab_distance(self.target)
   }
 
-  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+  fn successors(&mut self, node: &Self::Node) -> Self::Successors {
     self.maze.neighbors(*node)
   }
 }

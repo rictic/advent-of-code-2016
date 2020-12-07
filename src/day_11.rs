@@ -2,6 +2,7 @@
 
 use crate::astar::AStarSearcher;
 use itertools::Itertools;
+use smallvec::SmallVec;
 use std::fmt::Display;
 use MachineKind::*;
 
@@ -71,56 +72,14 @@ impl Display for State {
 struct StateSearcher {}
 impl crate::astar::AStarSearcher for StateSearcher {
   type Node = InnerState;
+  type Successors = SmallVec<[Self::Node; 8]>;
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64 {
     node.distance_from_complete()
   }
 
-  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+  fn successors(&mut self, node: &Self::Node) -> Self::Successors {
     node.successors().collect()
-  }
-}
-
-#[derive(PartialEq, Eq, Copy, Clone)]
-struct HeuristicOrderedState {
-  steps_so_far: u32,
-  heuristic: u64,
-  state: InnerState,
-}
-impl HeuristicOrderedState {
-  fn initial(initial: InnerState) -> Self {
-    Self {
-      steps_so_far: 0,
-      heuristic: initial.distance_from_complete(),
-      state: initial,
-    }
-  }
-
-  fn successors(self) -> impl Iterator<Item = HeuristicOrderedState> {
-    self
-      .state
-      .successors()
-      .map(move |state| HeuristicOrderedState {
-        steps_so_far: self.steps_so_far + 1,
-        heuristic: state.distance_from_complete(),
-        state,
-      })
-  }
-}
-impl PartialOrd for HeuristicOrderedState {
-  fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-    Some(self.cmp(other))
-  }
-}
-impl Ord for HeuristicOrderedState {
-  fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-    match (self.heuristic as u32 + self.steps_so_far)
-      .cmp(&(other.heuristic as u32 + other.steps_so_far))
-    {
-      std::cmp::Ordering::Less => std::cmp::Ordering::Greater,
-      std::cmp::Ordering::Equal => std::cmp::Ordering::Equal,
-      std::cmp::Ordering::Greater => std::cmp::Ordering::Less,
-    }
   }
 }
 

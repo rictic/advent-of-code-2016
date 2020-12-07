@@ -4,6 +4,7 @@ use std::collections::{BTreeSet, BinaryHeap};
 
 pub trait AStarSearcher: Sized {
   type Node: Sized + Ord;
+  type Successors: IntoIterator<Item=Self::Node> + std::iter::FromIterator<Self::Node>;
 
   fn search(&mut self, initial: Self::Node) -> Option<(u64, Self::Node)> {
     let mut heap: BinaryHeap<SearchNode<Self::Node>> = BinaryHeap::new();
@@ -37,7 +38,7 @@ pub trait AStarSearcher: Sized {
   }
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64;
-  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node>;
+  fn successors(&mut self, node: &Self::Node) -> Self::Successors;
 }
 
 pub struct CachingSearcher<Searcher>
@@ -53,12 +54,13 @@ where
   Searcher::Node: Copy,
 {
   type Node = Searcher::Node;
+  type Successors = Searcher::Successors;
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64 {
     self.searcher.optimistic_distance(node)
   }
 
-  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+  fn successors(&mut self, node: &Self::Node) -> Self::Successors {
     self
       .searcher
       .successors(node)

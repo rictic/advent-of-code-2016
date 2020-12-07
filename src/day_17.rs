@@ -4,6 +4,8 @@ use smallvec::SmallVec;
 use Direction::*;
 
 use crate::{astar::AStarSearcher, md5::HexIterator};
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::ParallelIterator;
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
 enum Direction {
@@ -88,7 +90,7 @@ impl Vault {
     }
   }
 
-  fn find_doors(&mut self, moves: &MoveList) -> Vec<MoveList> {
+  fn find_doors(&mut self, moves: &MoveList) -> SmallVec<[MoveList; 4]> {
     let (x, y) = moves.location();
     if x == 3 && y == 3 {
       return Default::default();
@@ -99,27 +101,19 @@ impl Vault {
     }
     let digest = md5::compute(&self.scratch_str);
     let mut hexes = HexIterator::new(digest);
-    let mut results = Vec::with_capacity(4);
+    let mut results = SmallVec::new();
 
-    if hexes.next().unwrap() >= 0xb {
-      if y > 0 {
-        results.push(moves.with_move(Up));
-      }
+    if hexes.next().unwrap() >= 0xb && y > 0 {
+      results.push(moves.with_move(Up));
     }
-    if hexes.next().unwrap() >= 0xb {
-      if y < 3 {
-        results.push(moves.with_move(Down));
-      }
+    if hexes.next().unwrap() >= 0xb && y < 3 {
+      results.push(moves.with_move(Down));
     }
-    if hexes.next().unwrap() >= 0xb {
-      if x > 0 {
-        results.push(moves.with_move(Left));
-      }
+    if hexes.next().unwrap() >= 0xb && x > 0 {
+      results.push(moves.with_move(Left));
     }
-    if hexes.next().unwrap() >= 0xb {
-      if x < 3 {
-        results.push(moves.with_move(Right));
-      }
+    if hexes.next().unwrap() >= 0xb && x < 3 {
+      results.push(moves.with_move(Right));
     }
     results
   }
@@ -127,13 +121,14 @@ impl Vault {
 
 impl AStarSearcher for Vault {
   type Node = MoveList;
+  type Successors = SmallVec<[Self::Node; 4]>;
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64 {
     let (x, y) = node.location();
     ((3 - x).abs() as u64) + ((3 - y).abs() as u64)
   }
 
-  fn successors(&mut self, node: &Self::Node) -> Vec<Self::Node> {
+  fn successors(&mut self, node: &Self::Node) -> Self::Successors {
     self.find_doors(&node)
   }
 }
@@ -148,19 +143,28 @@ fn problem(passcode: &str) -> String {
   moves.moves.into_iter().map(|d| d.as_char()).collect()
 }
 
-fn problem_part_2(passcode: &str) -> usize {
+fn part_2_par(passcode: &str, node: &MoveList) -> usize {
   let mut vault = Vault::new(passcode);
-  let mut nodes = vec![MoveList {
-    moves: Default::default(),
-  }];
-  let mut solution_len: usize = 0;
-  while let Some(node) = nodes.pop() {
-    if node.location() == (3, 3) {
-      solution_len = solution_len.max(node.moves.len());
-    }
-    nodes.append(&mut vault.find_doors(&node));
+  if node.location() == (3, 3) {
+    return node.moves.len();
   }
+  let mut solution_len: usize = 0;
+  let best_child = vault
+    .find_doors(node)
+    .par_iter()
+    .map(|node| part_2_par(passcode, node))
+    .reduce(|| 0, |left, right| left.max(right));
+  solution_len = solution_len.max(best_child);
   solution_len
+}
+
+fn problem_part_2(passcode: &str) -> usize {
+  part_2_par(
+    passcode,
+    &MoveList {
+      moves: Default::default(),
+    },
+  )
 }
 
 #[cfg(test)]
@@ -187,7 +191,7 @@ mod test {
     assert_eq!(830, problem_part_2("ulqzkmiv"));
   }
 
-#[cfg(not(debug_assertions))]
+  #[cfg(not(debug_assertions))]
   #[test]
   fn part_2_my_input() {
     assert_eq!(420, problem_part_2("rrrbmfta"));
