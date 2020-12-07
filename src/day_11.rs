@@ -72,7 +72,7 @@ impl Display for State {
 struct StateSearcher {}
 impl crate::astar::AStarSearcher for StateSearcher {
   type Node = InnerState;
-  type Successors = SmallVec<[Self::Node; 8]>;
+  type Successors = SmallVec<[Self::Node; 64]>;
 
   fn optimistic_distance(&self, node: &Self::Node) -> u64 {
     node.distance_from_complete()

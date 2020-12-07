@@ -4,11 +4,10 @@ use std::collections::{BTreeSet, BinaryHeap};
 
 pub trait AStarSearcher: Sized {
   type Node: Sized + Ord;
-  type Successors: IntoIterator<Item=Self::Node> + std::iter::FromIterator<Self::Node>;
+  type Successors: IntoIterator<Item = Self::Node> + std::iter::FromIterator<Self::Node>;
 
   fn search(&mut self, initial: Self::Node) -> Option<(u64, Self::Node)> {
     let mut heap: BinaryHeap<SearchNode<Self::Node>> = BinaryHeap::new();
-    // let mut seen = BTreeSet::new();
     heap.push(SearchNode {
       steps_so_far: 0,
       heuristic: self.optimistic_distance(&initial),
